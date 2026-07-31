@@ -1645,6 +1645,19 @@ export default function App() {
                 <Btn T={T} size="sm" variant="outline" icon={Download} onClick={exportPDF}>PDF</Btn>
               </>
             ) : null}
+            {/* Output-language PT | EN — standardized into the header (matches ABM
+                Orchestrator). Shown when a campaign is open; switching translates
+                already-generated content into the selected language. */}
+            {campaign ? (
+              <Segmented options={["PT", "EN"]} value={campaign.contentLang || "PT"}
+                onChange={(v) => {
+                  if (v === (campaign.contentLang || "PT")) return;
+                  setCampaign((c) => ({ ...c, contentLang: v }));
+                  if (hasGeneratedContent(campaign) && campaign.generatedLang && campaign.generatedLang !== v) {
+                    translateContent(v);
+                  }
+                }} T={T} />
+            ) : null}
             <button onClick={() => setDark((d) => !d)} style={{ background: T.chip, border: "none", borderRadius: 10, width: 36, height: 36, display: "grid", placeItems: "center", cursor: "pointer", color: T.ink }}>
               {dark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
@@ -1664,17 +1677,6 @@ export default function App() {
               <input value={campaign.name} maxLength={90} placeholder="Campaign name"
                 onChange={(e) => setCampaign((c) => ({ ...c, name: e.target.value }))}
                 style={{ background: "transparent", border: "none", outline: "none", color: T.ink, fontSize: 26, fontWeight: 800, letterSpacing: -0.6, fontFamily: T.font, flex: 1, minWidth: 240 }} />
-              <div className="no-print" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: T.faint, letterSpacing: 0.3 }}>Output language</span>
-                <Segmented options={["PT", "EN"]} value={campaign.contentLang || "PT"}
-                  onChange={(v) => {
-                    if (v === (campaign.contentLang || "PT")) return;
-                    setCampaign((c) => ({ ...c, contentLang: v }));
-                    if (hasGeneratedContent(campaign) && campaign.generatedLang && campaign.generatedLang !== v) {
-                      translateContent(v);
-                    }
-                  }} T={T} />
-              </div>
             </div>
             {/* phase nav for mobile (below title) */}
             <div className="cd-phasenav-mobile no-print" style={{ display: "none", marginBottom: 18, overflowX: "auto" }}>
