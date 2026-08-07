@@ -537,7 +537,7 @@ function buildDemo(lang) {
 }
 
 /* ================================ UI atoms =============================== */
-function Segmented({ options, value, onChange, T, icons }) {
+function Segmented({ options, value, onChange, T, icons, labels }) {
   return (
     <div style={{ display: "inline-flex", background: T.chip, borderRadius: 12, padding: 3, gap: 2 }}>
       {options.map((o, i) => {
@@ -553,7 +553,7 @@ function Segmented({ options, value, onChange, T, icons }) {
               boxShadow: active ? "0 1px 3px rgba(0,0,0,0.14)" : "none",
               transition: "all .18s ease",
             }}>
-            {Ico ? <Ico size={14} /> : null}{o}
+            {Ico ? <Ico size={14} /> : null}{labels ? (labels[o] || o) : o}
           </button>
         );
       })}
@@ -696,7 +696,7 @@ function KpiTargetsEditor({ campaign, setCampaign, T }) {
 }
 
 /* ============================== PLAN PHASE =============================== */
-function PlanPhase({ campaign, setCampaign, T, notify }) {
+function PlanPhase({ campaign, setCampaign, T, lang, notify }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const p = campaign.plan;
@@ -724,38 +724,38 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
         `"kpiTargets":[{"metric":"leads|mql|sql|pipeline|revenue|cpl","target":0}]}`;
       const text = await callAI(sys, user);
       const json = extractJSON(text);
-      if (!json) throw new Error("Couldn't parse the response. Try again.");
+      if (!json) throw new Error(TR(lang, "plan.err.parse"));
       setCampaign((c) => ({ ...c, plan: { ...c.plan, ...json }, generatedLang: c.contentLang || "PT" }));
-      notify("Plan generated.");
+      notify(TR(lang, "toast.plan"));
     } catch (e) {
-      setErr(e.message || "Failed to generate the plan.");
+      setErr(e.message || TR(lang, "plan.err.fail"));
     } finally { setLoading(false); }
   }
 
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <Card T={T}>
-        <SectionTitle icon={Target} T={T} hint="Set once. Generation uses this profile.">Campaign profile</SectionTitle>
+        <SectionTitle icon={Target} T={T} hint={TR(lang, "plan.profile.hint")}>{TR(lang, "plan.profile")}</SectionTitle>
         <div className="ici-grid2" style={{ display: "grid", gap: 14 }}>
-          <Field label="Company" T={T}><input style={inputStyle(T)} value={campaign.profile.company} onChange={(e) => upProfile("company", e.target.value)} /></Field>
-          <Field label="Category" T={T}><input style={inputStyle(T)} value={campaign.profile.category} onChange={(e) => upProfile("category", e.target.value)} /></Field>
+          <Field label={TR(lang, "plan.company")} T={T}><input style={inputStyle(T)} value={campaign.profile.company} onChange={(e) => upProfile("company", e.target.value)} /></Field>
+          <Field label={TR(lang, "plan.category")} T={T}><input style={inputStyle(T)} value={campaign.profile.category} onChange={(e) => upProfile("category", e.target.value)} /></Field>
         </div>
-        <Field label="Offering / value proposition" T={T}><textarea rows={2} style={{ ...inputStyle(T), resize: "vertical" }} value={campaign.profile.offering} onChange={(e) => upProfile("offering", e.target.value)} /></Field>
+        <Field label={TR(lang, "plan.offering")} T={T}><textarea rows={2} style={{ ...inputStyle(T), resize: "vertical" }} value={campaign.profile.offering} onChange={(e) => upProfile("offering", e.target.value)} /></Field>
         <div className="ici-grid2" style={{ display: "grid", gap: 14 }}>
-          <Field label="Competitors" T={T}><input style={inputStyle(T)} value={campaign.profile.competitors} onChange={(e) => upProfile("competitors", e.target.value)} /></Field>
-          <Field label="Primary market" T={T}><input style={inputStyle(T)} value={campaign.profile.market} onChange={(e) => upProfile("market", e.target.value)} /></Field>
+          <Field label={TR(lang, "plan.competitors")} T={T}><input style={inputStyle(T)} value={campaign.profile.competitors} onChange={(e) => upProfile("competitors", e.target.value)} /></Field>
+          <Field label={TR(lang, "plan.market")} T={T}><input style={inputStyle(T)} value={campaign.profile.market} onChange={(e) => upProfile("market", e.target.value)} /></Field>
         </div>
-        <Field label="Target audience" T={T}><input style={inputStyle(T)} value={campaign.profile.audience} onChange={(e) => upProfile("audience", e.target.value)} /></Field>
+        <Field label={TR(lang, "plan.audience")} T={T}><input style={inputStyle(T)} value={campaign.profile.audience} onChange={(e) => upProfile("audience", e.target.value)} /></Field>
         <div className="ici-grid21" style={{ display: "grid", gap: 14 }}>
-          <Field label="Campaign objective" T={T}><input style={inputStyle(T)} value={campaign.objective} onChange={(e) => setCampaign((c) => ({ ...c, objective: e.target.value }))} /></Field>
-          <Field label="Type" T={T}>
+          <Field label={TR(lang, "plan.objective")} T={T}><input style={inputStyle(T)} value={campaign.objective} onChange={(e) => setCampaign((c) => ({ ...c, objective: e.target.value }))} /></Field>
+          <Field label={TR(lang, "plan.type")} T={T}>
             <select style={inputStyle(T)} value={campaign.campaignType} onChange={(e) => setCampaign((c) => ({ ...c, campaignType: e.target.value }))}>
               {["Anchor", "Brand", "Product", "Competitor"].map((x) => <option key={x}>{x}</option>)}
             </select>
           </Field>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 6 }}>
-          <Btn T={T} onClick={generate} disabled={loading} icon={Sparkles}>{loading ? "Generating…" : "Generate plan"}</Btn>
+          <Btn T={T} onClick={generate} disabled={loading} icon={Sparkles}>{loading ? TR(lang, "spinner.generating") : TR(lang, "plan.generate")}</Btn>
           {loading ? <Spinner T={T} /> : null}
           {err ? <span style={{ color: T.bad, fontSize: 13 }}>{err}</span> : null}
         </div>
@@ -763,7 +763,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 
       {p.thesis ? (
         <Card T={T}>
-          <Eyebrow T={T}>Thesis & timing</Eyebrow>
+          <Eyebrow T={T}>{TR(lang, "plan.thesis")}</Eyebrow>
           <p style={{ fontSize: 16, lineHeight: 1.55, color: T.ink, marginTop: 4, marginBottom: 16, fontWeight: 500 }}>{p.thesis}</p>
           <div style={{ display: "grid", gap: 8 }}>
             {(p.whyNow || []).map((w, i) => (
@@ -778,7 +778,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 
       {(p.personas || []).length ? (
         <Card T={T}>
-          <SectionTitle icon={Users} T={T}>Personas by funnel stage</SectionTitle>
+          <SectionTitle icon={Users} T={T}>{TR(lang, "plan.personas")}</SectionTitle>
           <div style={{ display: "grid", gap: 12 }}>
             {p.personas.map((ps, i) => (
               <div key={i} style={{ background: T.cardEl, borderRadius: 14, padding: 15, border: `1px solid ${T.hair}` }}>
@@ -786,8 +786,8 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
                   <span style={{ fontWeight: 700, color: T.ink, fontSize: 15 }}>{ps.name}</span>
                   <Pill T={T} tone="violet">{ps.funnelStage}</Pill>
                 </div>
-                <div style={{ fontSize: 13.5, color: T.muted, marginBottom: 6 }}><b style={{ color: T.faint }}>Pain: </b>{ps.pain}</div>
-                <div style={{ fontSize: 13.5, color: T.ink }}><b style={{ color: T.coral }}>Message: </b>{ps.message}</div>
+                <div style={{ fontSize: 13.5, color: T.muted, marginBottom: 6 }}><b style={{ color: T.faint }}>{TR(lang, "plan.pain")}</b>{ps.pain}</div>
+                <div style={{ fontSize: 13.5, color: T.ink }}><b style={{ color: T.coral }}>{TR(lang, "plan.message")}</b>{ps.message}</div>
               </div>
             ))}
           </div>
@@ -796,7 +796,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 
       {(p.channelMix || []).length ? (
         <Card T={T}>
-          <SectionTitle icon={Megaphone} T={T}>Multichannel mix mapped to the funnel</SectionTitle>
+          <SectionTitle icon={Megaphone} T={T}>{TR(lang, "plan.mix")}</SectionTitle>
           <div style={{ display: "grid", gap: 10 }}>
             {p.channelMix.map((ch, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < p.channelMix.length - 1 ? `1px solid ${T.hair}` : "none" }}>
@@ -811,12 +811,12 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 
       {(p.messageArchitecture || []).length ? (
         <Card T={T} pad={0}>
-          <div style={{ padding: "22px 22px 10px" }}><SectionTitle icon={Layers} T={T}>Message architecture</SectionTitle></div>
+          <div style={{ padding: "22px 22px 10px" }}><SectionTitle icon={Layers} T={T}>{TR(lang, "plan.msgarch")}</SectionTitle></div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ color: T.faint, textAlign: "left" }}>
-                  {["Persona", "Awareness", "Consideration", "Decision"].map((h) => (
+                  {[TR(lang, "th.persona"), TR(lang, "th.awareness"), TR(lang, "th.consideration"), TR(lang, "th.decision")].map((h) => (
                     <th key={h} style={{ padding: "8px 16px", fontWeight: 700, fontSize: 11, letterSpacing: 0.5, textTransform: "uppercase", borderBottom: `1px solid ${T.hair}` }}>{h}</th>
                   ))}
                 </tr>
@@ -838,7 +838,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 
       {(p.assetPlan || []).length ? (
         <Card T={T}>
-          <SectionTitle icon={FileText} T={T}>Asset plan</SectionTitle>
+          <SectionTitle icon={FileText} T={T}>{TR(lang, "plan.assets")}</SectionTitle>
           <div style={{ display: "grid", gap: 10 }}>
             {p.assetPlan.map((a, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < p.assetPlan.length - 1 ? `1px solid ${T.hair}` : "none", flexWrap: "wrap" }}>
@@ -853,7 +853,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
       ) : null}
 
       <Card T={T}>
-        <SectionTitle icon={Target} T={T} hint="Targets are yours to set. The AI can suggest starting values, but review before use.">KPI targets (full-funnel)</SectionTitle>
+        <SectionTitle icon={Target} T={T} hint={TR(lang, "plan.kpi.hint")}>{TR(lang, "plan.kpi")}</SectionTitle>
         <KpiTargetsEditor campaign={campaign} setCampaign={setCampaign} T={T} />
       </Card>
     </div>
@@ -861,7 +861,7 @@ function PlanPhase({ campaign, setCampaign, T, notify }) {
 }
 
 /* ============================ LOCALIZE PHASE ============================= */
-function LocalizePhase({ campaign, setCampaign, T, notify }) {
+function LocalizePhase({ campaign, setCampaign, T, lang, notify }) {
   const [loading, setLoading] = useState(false);
   const [market, setMarket] = useState(campaign.profile.market || "Brasil");
   const [err, setErr] = useState("");
@@ -881,7 +881,7 @@ function LocalizePhase({ campaign, setCampaign, T, notify }) {
       const json = extractJSON(text);
       if (!json) throw new Error("Couldn't parse the response.");
       setCampaign((c) => ({ ...c, localization: { ...c.localization, ...json }, generatedLang: c.contentLang || "PT" }));
-      notify("Localization generated.");
+      notify(TR(lang, "toast.loc"));
     } catch (e) { setErr(e.message); } finally { setLoading(false); }
   }
 
@@ -902,12 +902,12 @@ function LocalizePhase({ campaign, setCampaign, T, notify }) {
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <Card T={T}>
-        <SectionTitle icon={Globe} T={T} hint="Real adaptation of the global campaign to the region, not just translation.">Localization layer</SectionTitle>
+        <SectionTitle icon={Globe} T={T} hint={TR(lang, "loc.layer.hint")}>{TR(lang, "loc.layer")}</SectionTitle>
         <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <Field label="Target market" T={T}><input style={inputStyle(T)} value={market} onChange={(e) => setMarket(e.target.value)} /></Field>
+            <Field label={TR(lang, "loc.market")} T={T}><input style={inputStyle(T)} value={market} onChange={(e) => setMarket(e.target.value)} /></Field>
           </div>
-          <Btn T={T} onClick={generate} disabled={loading} icon={Sparkles} style={{ marginBottom: 14 }}>{loading ? "Generating…" : "Generate localization"}</Btn>
+          <Btn T={T} onClick={generate} disabled={loading} icon={Sparkles} style={{ marginBottom: 14 }}>{loading ? TR(lang, "spinner.generating") : TR(lang, "loc.generate")}</Btn>
         </div>
         {loading ? <Spinner T={T} /> : null}
         {err ? <span style={{ color: T.bad, fontSize: 13 }}>{err}</span> : null}
@@ -915,14 +915,14 @@ function LocalizePhase({ campaign, setCampaign, T, notify }) {
 
       {L.language ? (
         <div className="ici-grid2" style={{ display: "grid", gap: 14 }}>
-          <Card T={T}><Eyebrow T={T}>Language</Eyebrow><p style={{ color: T.ink, fontSize: 14.5, lineHeight: 1.5 }}>{L.language}</p></Card>
-          <Card T={T}><Eyebrow T={T} color={T.coral}>Tone</Eyebrow><p style={{ color: T.ink, fontSize: 14.5, lineHeight: 1.5 }}>{L.tone}</p></Card>
+          <Card T={T}><Eyebrow T={T}>{TR(lang, "loc.language")}</Eyebrow><p style={{ color: T.ink, fontSize: 14.5, lineHeight: 1.5 }}>{L.language}</p></Card>
+          <Card T={T}><Eyebrow T={T} color={T.coral}>{TR(lang, "loc.tone")}</Eyebrow><p style={{ color: T.ink, fontSize: 14.5, lineHeight: 1.5 }}>{L.tone}</p></Card>
         </div>
       ) : null}
-      {(L.localChannels || []).length ? <Block icon={Megaphone} title="Local channels" items={L.localChannels} /> : null}
-      {(L.compliance || []).length ? <Block icon={AlertTriangle} title="Compliance (LGPD)" items={L.compliance} /> : null}
-      {(L.culturalNotes || []).length ? <Block icon={Users} title="Cultural notes" items={L.culturalNotes} /> : null}
-      {(L.calendarNotes || []).length ? <Block icon={Calendar} title="Local calendar" items={L.calendarNotes} /> : null}
+      {(L.localChannels || []).length ? <Block icon={Megaphone} title={TR(lang, "loc.channels")} items={L.localChannels} /> : null}
+      {(L.compliance || []).length ? <Block icon={AlertTriangle} title={TR(lang, "loc.compliance")} items={L.compliance} /> : null}
+      {(L.culturalNotes || []).length ? <Block icon={Users} title={TR(lang, "loc.cultural")} items={L.culturalNotes} /> : null}
+      {(L.calendarNotes || []).length ? <Block icon={Calendar} title={TR(lang, "loc.calendar")} items={L.calendarNotes} /> : null}
     </div>
   );
 }
@@ -993,7 +993,7 @@ function parseWorkbook(file, onDone, onError) {
   reader.readAsArrayBuffer(file);
 }
 
-function MeasurePhase({ campaign, setCampaign, T, notify }) {
+function MeasurePhase({ campaign, setCampaign, T, lang, notify }) {
   const [err, setErr] = useState("");
   const fileRef = useRef(null);
   const rows = campaign.actualsRows || [];
@@ -1004,7 +1004,7 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
     setErr("");
     parseWorkbook(f, (parsed, warning) => {
       setCampaign((c) => ({ ...c, actualsRows: parsed, insights: null }));
-      notify(warning || "Spreadsheet loaded.", Boolean(warning));
+      notify(warning || TR(lang, "toast.sheet"), Boolean(warning));
     }, (m) => setErr(m));
   };
 
@@ -1017,13 +1017,13 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
   return (
     <div style={{ display: "grid", gap: 18 }}>
       <Card T={T}>
-        <SectionTitle icon={FileSpreadsheet} T={T} hint="Upload the campaign's real extract. The app computes, it doesn't guess.">Actuals</SectionTitle>
+        <SectionTitle icon={FileSpreadsheet} T={T} hint={TR(lang, "meas.actuals.hint")}>{TR(lang, "meas.actuals")}</SectionTitle>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <Btn T={T} variant="ghost" size="sm" icon={Download} onClick={downloadTemplate}>Download template</Btn>
-          <Btn T={T} size="sm" icon={Upload} onClick={() => fileRef.current && fileRef.current.click()}>Upload spreadsheet</Btn>
+          <Btn T={T} variant="ghost" size="sm" icon={Download} onClick={downloadTemplate}>{TR(lang, "meas.template")}</Btn>
+          <Btn T={T} size="sm" icon={Upload} onClick={() => fileRef.current && fileRef.current.click()}>{TR(lang, "meas.upload")}</Btn>
           <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: "none" }}
             onChange={(e) => { onFile(e.target.files && e.target.files[0]); e.target.value = ""; }} />
-          {rows.length ? <span style={{ alignSelf: "center", fontSize: 13, color: T.muted }}>{rows.length} channels loaded</span> : null}
+          {rows.length ? <span style={{ alignSelf: "center", fontSize: 13, color: T.muted }}>{rows.length} {TR(lang, "meas.channelsLoaded")}</span> : null}
         </div>
         {err ? <div style={{ color: T.bad, fontSize: 13, marginTop: 10 }}>{err}</div> : null}
       </Card>
@@ -1031,15 +1031,15 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
       {rows.length ? (
         <>
           <div className="ici-grid4" style={{ display: "grid", gap: 10 }}>
-            <Stat T={T} label="Spend" value={brl(totals.spend)} />
-            <Stat T={T} label="Leads" value={int(totals.leads)} sub={`CPL ${money2(totals.cpl)}`} />
-            <Stat T={T} label="Pipeline" value={brl(totals.pipeline)} accent={T.violet} />
-            <Stat T={T} label="ROAS" value={totals.roas.toFixed(2) + "x"} sub={`ROI ${pct(totals.roi, 0)}`} accent={totals.roi >= 0 ? T.good : T.bad} />
+            <Stat T={T} label={TR(lang, "st.spend")} value={brl(totals.spend)} />
+            <Stat T={T} label={TR(lang, "st.leads")} value={int(totals.leads)} sub={`CPL ${money2(totals.cpl)}`} />
+            <Stat T={T} label={TR(lang, "st.pipeline")} value={brl(totals.pipeline)} accent={T.violet} />
+            <Stat T={T} label={TR(lang, "st.roas")} value={totals.roas.toFixed(2) + "x"} sub={`ROI ${pct(totals.roi, 0)}`} accent={totals.roi >= 0 ? T.good : T.bad} />
           </div>
 
           <div className="ici-grid2" style={{ display: "grid", gap: 14 }}>
             <Card T={T}>
-              <Eyebrow T={T}>Conversion funnel</Eyebrow>
+              <Eyebrow T={T}>{TR(lang, "meas.funnel")}</Eyebrow>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer>
                   <BarChart data={funnelData} margin={{ top: 10, right: 6, left: -18, bottom: 0 }}>
@@ -1053,7 +1053,7 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
               </div>
             </Card>
             <Card T={T}>
-              <Eyebrow T={T} color={T.coral}>Spend by channel</Eyebrow>
+              <Eyebrow T={T} color={T.coral}>{TR(lang, "meas.spendByChannel")}</Eyebrow>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer>
                   <PieChart>
@@ -1069,7 +1069,7 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
           </div>
 
           <Card T={T}>
-            <Eyebrow T={T}>Cost per lead by channel</Eyebrow>
+            <Eyebrow T={T}>{TR(lang, "meas.cplByChannel")}</Eyebrow>
             <div style={{ height: 240 }}>
               <ResponsiveContainer>
                 <BarChart data={byChannel} margin={{ top: 10, right: 6, left: -6, bottom: 0 }}>
@@ -1084,12 +1084,12 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
           </Card>
 
           <Card T={T} pad={0}>
-            <div style={{ padding: "20px 22px 8px" }}><Eyebrow T={T}>Channel detail</Eyebrow></div>
+            <div style={{ padding: "20px 22px 8px" }}><Eyebrow T={T}>{TR(lang, "meas.channelDetail")}</Eyebrow></div>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, fontVariantNumeric: "tabular-nums" }}>
                 <thead>
                   <tr style={{ color: T.faint, textAlign: "right" }}>
-                    {["Channel", "Spend", "Leads", "CPL", "MQL", "SQL", "Pipeline", "ROAS"].map((h, i) => (
+                    {[TR(lang, "th.channel"), TR(lang, "th.spend"), TR(lang, "st.leads"), TR(lang, "th.cpl"), "MQL", "SQL", TR(lang, "st.pipeline"), "ROAS"].map((h, i) => (
                       <th key={h} style={{ padding: "8px 14px", fontWeight: 700, fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", textAlign: i === 0 ? "left" : "right", borderBottom: `1px solid ${T.hair}` }}>{h}</th>
                     ))}
                   </tr>
@@ -1115,8 +1115,8 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
       ) : (
         <Card T={T} style={{ textAlign: "center", padding: 44 }}>
           <FileSpreadsheet size={34} style={{ color: T.faint, marginBottom: 10 }} />
-          <div style={{ fontWeight: 650, color: T.ink, marginBottom: 4 }}>No data yet</div>
-          <div style={{ fontSize: 13.5, color: T.muted }}>Download the template, fill it with the campaign extract, and upload to see the dashboard.</div>
+          <div style={{ fontWeight: 650, color: T.ink, marginBottom: 4 }}>{TR(lang, "meas.noData")}</div>
+          <div style={{ fontSize: 13.5, color: T.muted }}>{TR(lang, "meas.noData.sub")}</div>
         </Card>
       )}
     </div>
@@ -1124,7 +1124,7 @@ function MeasurePhase({ campaign, setCampaign, T, notify }) {
 }
 
 /* ============================= OPTIMIZE PHASE =========================== */
-function OptimizePhase({ campaign, setCampaign, T, notify }) {
+function OptimizePhase({ campaign, setCampaign, T, lang, notify }) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const rows = campaign.actualsRows || [];
@@ -1153,7 +1153,7 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
       const json = extractJSON(text);
       if (!json) throw new Error("Couldn't parse the response.");
       setCampaign((c) => ({ ...c, insights: json, generatedLang: c.contentLang || "PT" }));
-      notify("Insights generated.");
+      notify(TR(lang, "toast.insights"));
     } catch (e) { setErr(e.message); } finally { setLoading(false); }
   }
 
@@ -1171,28 +1171,28 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
       {!rows.length ? (
         <Card T={T} style={{ textAlign: "center", padding: 40 }}>
           <TrendingUp size={32} style={{ color: T.faint, marginBottom: 10 }} />
-          <div style={{ fontWeight: 650, color: T.ink }}>Load data in Measure first</div>
-          <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>Optimization compares actuals against the plan's targets.</div>
+          <div style={{ fontWeight: 650, color: T.ink }}>{TR(lang, "opt.needData")}</div>
+          <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>{TR(lang, "opt.needData.sub")}</div>
         </Card>
       ) : (
         <>
           <Card T={T}>
-            <SectionTitle icon={Target} T={T} hint="Set or adjust targets here without going back to Plan.">KPI targets</SectionTitle>
+            <SectionTitle icon={Target} T={T} hint={TR(lang, "opt.kpi.hint")}>{TR(lang, "opt.kpi")}</SectionTitle>
             <KpiTargetsEditor campaign={campaign} setCampaign={setCampaign} T={T} />
           </Card>
 
           {!pva.length ? (
             <Card T={T} style={{ textAlign: "center", padding: 34 }}>
               <Target size={30} style={{ color: T.faint, marginBottom: 10 }} />
-              <div style={{ fontWeight: 650, color: T.ink }}>No targets set yet</div>
-              <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>Fill at least one KPI target above to unlock plan vs. actual.</div>
+              <div style={{ fontWeight: 650, color: T.ink }}>{TR(lang, "opt.noTargets")}</div>
+              <div style={{ fontSize: 13.5, color: T.muted, marginTop: 4 }}>{TR(lang, "opt.noTargets.sub")}</div>
             </Card>
           ) : null}
 
           {pva.length ? (
             <Card T={T}>
-              <SectionTitle icon={Target} T={T} hint="Actuals against the targets set in the plan.">Plan vs. actual</SectionTitle>
-              <div style={{ fontSize: 12, color: T.faint, marginBottom: 8 }}>Attainment vs. target (100% = on target). Green favorable, coral unfavorable.</div>
+              <SectionTitle icon={Target} T={T} hint={TR(lang, "opt.pva.hint")}>{TR(lang, "opt.pva")}</SectionTitle>
+              <div style={{ fontSize: 12, color: T.faint, marginBottom: 8 }}>{TR(lang, "opt.pva.sub")}</div>
               <div style={{ height: 250, marginBottom: 12 }}>
                 <ResponsiveContainer>
                   <BarChart data={pvaChart} margin={{ top: 10, right: 6, left: -6, bottom: 0 }}>
@@ -1214,7 +1214,7 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
                     <div style={{ fontSize: 18, fontWeight: 750, color: T.ink, fontVariantNumeric: "tabular-nums" }}>{g.fmt(g.actual)}</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 4, fontSize: 12.5, fontWeight: 650, color: g.favorable ? T.good : T.bad }}>
                       {g.favorable ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-                      {(g.gapPct >= 0 ? "+" : "") + pct(g.gapPct, 0)} <span style={{ color: T.faint, fontWeight: 500 }}>vs target</span>
+                      {(g.gapPct >= 0 ? "+" : "") + pct(g.gapPct, 0)} <span style={{ color: T.faint, fontWeight: 500 }}>{TR(lang, "opt.vsTarget")}</span>
                     </div>
                   </div>
                 ))}
@@ -1224,10 +1224,10 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
 
           <Card T={T}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-              <SectionTitle icon={Sparkles} T={T} hint="The AI narrates the already-computed numbers. It doesn't invent data.">Executive summary & recommendations</SectionTitle>
-              <Btn T={T} size="sm" icon={Sparkles} onClick={generate} disabled={loading} style={{ marginBottom: 14 }}>{loading ? "Generating…" : insights ? "Regenerate" : "Generate insights"}</Btn>
+              <SectionTitle icon={Sparkles} T={T} hint={TR(lang, "opt.exec.hint")}>{TR(lang, "opt.exec")}</SectionTitle>
+              <Btn T={T} size="sm" icon={Sparkles} onClick={generate} disabled={loading} style={{ marginBottom: 14 }}>{loading ? TR(lang, "spinner.generating") : insights ? TR(lang, "opt.regen") : TR(lang, "opt.genInsights")}</Btn>
             </div>
-            {loading ? <Spinner T={T} label="Analyzing actuals…" /> : null}
+            {loading ? <Spinner T={T} label={TR(lang, "opt.analyzing")} /> : null}
             {err ? <div style={{ color: T.bad, fontSize: 13 }}>{err}</div> : null}
             {insights ? (
               <div style={{ marginTop: 6 }}>
@@ -1256,7 +1256,7 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
                 </div>
               </div>
             ) : (!loading && (
-              <div style={{ fontSize: 13.5, color: T.muted }}>Generate the executive summary from the loaded data.</div>
+              <div style={{ fontSize: 13.5, color: T.muted }}>{TR(lang, "opt.genFromData")}</div>
             ))}
           </Card>
         </>
@@ -1266,7 +1266,7 @@ function OptimizePhase({ campaign, setCampaign, T, notify }) {
 }
 
 /* ============================ My Campaigns drawer ======================= */
-function Drawer({ open, onClose, campaigns, onOpen, onDelete, onNew, T, currentId }) {
+function Drawer({ open, onClose, campaigns, onOpen, onDelete, onNew, T, lang, currentId }) {
   return (
     <>
       <div onClick={onClose} style={{
@@ -1280,17 +1280,17 @@ function Drawer({ open, onClose, campaigns, onOpen, onDelete, onNew, T, currentI
         borderRight: `1px solid ${T.hair}`,
       }}>
         <div style={{ padding: "20px 20px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${T.hair}` }}>
-          <div style={{ fontSize: 17, fontWeight: 750, color: T.ink }}>My Campaigns</div>
+          <div style={{ fontSize: 17, fontWeight: 750, color: T.ink }}>{TR(lang, "drawer.title")}</div>
           <button onClick={onClose} style={{ background: T.chip, border: "none", borderRadius: 9, width: 32, height: 32, display: "grid", placeItems: "center", cursor: "pointer", color: T.ink }}><X size={17} /></button>
         </div>
         <div style={{ padding: 16 }}>
-          <Btn T={T} icon={Plus} onClick={onNew} style={{ width: "100%" }}>New campaign</Btn>
+          <Btn T={T} icon={Plus} onClick={onNew} style={{ width: "100%" }}>{TR(lang, "nav.new")}</Btn>
         </div>
-        <div style={{ padding: "0 16px 6px", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.faint }}>Saved Campaigns</div>
+        <div style={{ padding: "0 16px 6px", fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.faint }}>{TR(lang, "drawer.saved")}</div>
         <div style={{ flex: 1, overflowY: "auto", padding: "6px 16px 20px" }}>
           {campaigns.length === 0 ? (
             <div style={{ fontSize: 13.5, color: T.muted, padding: "20px 4px", lineHeight: 1.5 }}>
-              Nothing saved yet. Create a campaign and tap Save to keep it here.
+              {TR(lang, "drawer.empty")}
             </div>
           ) : campaigns.map((c) => (
             <div key={c.id} onClick={() => onOpen(c)} style={{
@@ -1334,26 +1334,26 @@ function hasGeneratedContent(c) {
   );
 }
 
-function TranslateBar({ campaign, onTranslate, translating, T }) {
+function TranslateBar({ campaign, onTranslate, translating, T, lang }) {
   const target = campaign.contentLang || "PT";
   const current = campaign.generatedLang;
   if (!current || current === target || !hasGeneratedContent(campaign)) return null;
-  const nameOf = (x) => (x === "EN" ? "English" : "Portuguese");
+  const nameOf = (x) => (x === "EN" ? (lang === "PT" ? "Inglês" : "English") : (lang === "PT" ? "Português" : "Portuguese"));
   return (
     <Card T={T} pad={16} style={{ marginBottom: 18, borderLeft: `3px solid ${T.coral}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <Languages size={18} style={{ color: T.coral, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <div style={{ fontWeight: 650, color: T.ink, fontSize: 14 }}>
-            Content is in {nameOf(current)}, output language is set to {nameOf(target)}.
+            {TR(lang, "tb.content")} {nameOf(current)}{TR(lang, "tb.outputSet")} {nameOf(target)}.
           </div>
           <div style={{ fontSize: 12.5, color: T.muted, marginTop: 2 }}>
-            Translation did not run automatically. Retry it here.
+            {TR(lang, "tb.noauto")}
           </div>
         </div>
         {translating
-          ? <Spinner T={T} label={"Translating to " + nameOf(target) + "…"} />
-          : <Btn T={T} size="sm" icon={Languages} onClick={onTranslate}>Translate to {nameOf(target)}</Btn>}
+          ? <Spinner T={T} label={TR(lang, "tb.translatingTo") + " " + nameOf(target) + "…"} />
+          : <Btn T={T} size="sm" icon={Languages} onClick={onTranslate}>{TR(lang, "tb.translateTo")} {nameOf(target)}</Btn>}
       </div>
     </Card>
   );
@@ -1402,11 +1402,11 @@ class PhaseBoundary extends Component {
       return (
         <Card T={T} style={{ textAlign: "center", padding: 40 }}>
           <AlertTriangle size={30} style={{ color: T.warn, marginBottom: 10 }} />
-          <div style={{ fontWeight: 700, color: T.ink, marginBottom: 4 }}>This section hit an error.</div>
+          <div style={{ fontWeight: 700, color: T.ink, marginBottom: 4 }}>{TR(this.props.lang, "err.section")}</div>
           <div style={{ fontSize: 13.5, color: T.muted, marginBottom: 16 }}>
-            Your other campaigns are safe. Try switching phases, or reload the page.
+            {TR(this.props.lang, "err.safe")}
           </div>
-          <Btn T={T} size="sm" variant="outline" onClick={() => this.setState({ error: null })}>Try again</Btn>
+          <Btn T={T} size="sm" variant="outline" onClick={() => this.setState({ error: null })}>{TR(this.props.lang, "err.retry")}</Btn>
         </Card>
       );
     }
@@ -1414,8 +1414,106 @@ class PhaseBoundary extends Component {
   }
 }
 
+// ---------- i18n: bilingual UI (PT/EN), like ABM Orchestrator / BD Cockpit ----
+// Module-level dictionary + TR(lang,key). Phases receive `lang` and call TR; the
+// App builds a `tr` shortcut. The header PT|EN toggle drives the interface AND
+// (with a campaign open) translates the generated content, together.
+const UI = {
+  PT: {
+    "nav.new": "Nova campanha", "nav.save": "Salvar", "nav.pdf": "PDF",
+    "err.section": "Esta seção encontrou um erro.", "err.safe": "Suas outras campanhas estão seguras. Troque de fase ou recarregue a página.", "err.retry": "Tentar de novo",
+    "spinner.generating": "Gerando…", "campaignName.ph": "Nome da campanha",
+    "drawer.title": "Minhas Campanhas", "drawer.saved": "Campanhas Salvas", "drawer.empty": "Nada salvo ainda. Crie uma campanha e toque em Salvar para mantê-la aqui.",
+    "tb.content": "O conteúdo está em", "tb.outputSet": ", o idioma de saída está definido para", "tb.noauto": "A tradução não rodou automaticamente. Refaça aqui.", "tb.translatingTo": "Traduzindo para", "tb.translateTo": "Traduzir para",
+    "toast.plan": "Plano gerado.", "toast.loc": "Localização gerada.", "toast.insights": "Insights gerados.", "toast.translated": "Conteúdo traduzido.", "toast.removed": "Campanha removida.", "toast.sheet": "Planilha carregada.",
+    // Plan
+    "plan.profile": "Perfil da campanha", "plan.profile.hint": "Defina uma vez. A geração usa este perfil.",
+    "plan.company": "Empresa", "plan.category": "Categoria", "plan.offering": "Oferta / proposta de valor",
+    "plan.competitors": "Concorrentes", "plan.market": "Mercado principal", "plan.audience": "Público-alvo",
+    "plan.objective": "Objetivo da campanha", "plan.type": "Tipo",
+    "plan.generate": "Gerar plano", "plan.err.parse": "Não foi possível ler a resposta. Tente de novo.", "plan.err.fail": "Falha ao gerar o plano.",
+    "plan.thesis": "Tese & timing", "plan.personas": "Personas por etapa do funil", "plan.pain": "Dor: ", "plan.message": "Mensagem: ",
+    "plan.mix": "Mix multicanal mapeado ao funil", "plan.msgarch": "Arquitetura de mensagem",
+    "th.persona": "Persona", "th.awareness": "Topo", "th.consideration": "Consideração", "th.decision": "Decisão",
+    "plan.assets": "Plano de assets", "plan.kpi": "Metas de KPI (funil completo)", "plan.kpi.hint": "As metas são suas. A IA pode sugerir valores iniciais, mas revise antes de usar.",
+    // Localize
+    "loc.layer": "Camada de localização", "loc.layer.hint": "Adaptação real da campanha global para a região, não apenas tradução.",
+    "loc.market": "Mercado de destino", "loc.generate": "Gerar localização",
+    "loc.language": "Idioma", "loc.tone": "Tom", "loc.channels": "Canais locais", "loc.compliance": "Compliance (LGPD)", "loc.cultural": "Notas culturais", "loc.calendar": "Calendário local",
+    // Measure
+    "meas.actuals": "Realizado", "meas.actuals.hint": "Faça upload do extrato real da campanha. O app calcula, não estima.",
+    "meas.template": "Baixar modelo", "meas.upload": "Enviar planilha", "meas.channelsLoaded": "canais carregados",
+    "st.spend": "Investimento", "st.leads": "Leads", "st.pipeline": "Pipeline", "st.roas": "ROAS",
+    "meas.funnel": "Funil de conversão", "meas.spendByChannel": "Investimento por canal", "meas.cplByChannel": "Custo por lead por canal", "meas.channelDetail": "Detalhe por canal",
+    "th.channel": "Canal", "th.spend": "Investimento", "th.cpl": "CPL",
+    "meas.noData": "Sem dados ainda", "meas.noData.sub": "Baixe o modelo, preencha com o extrato da campanha e faça upload para ver o dashboard.",
+    // Optimize
+    "opt.needData": "Carregue dados em Medir primeiro", "opt.needData.sub": "A otimização compara o realizado com as metas do plano.",
+    "opt.kpi": "Metas de KPI", "opt.kpi.hint": "Defina ou ajuste as metas aqui sem voltar ao Plano.",
+    "opt.noTargets": "Nenhuma meta definida ainda", "opt.noTargets.sub": "Preencha ao menos uma meta de KPI acima para liberar plano vs. realizado.",
+    "opt.pva": "Plano vs. realizado", "opt.pva.hint": "Realizado contra as metas definidas no plano.", "opt.pva.sub": "Atingimento vs. meta (100% = na meta). Verde favorável, coral desfavorável.", "opt.vsTarget": "vs meta",
+    "opt.exec": "Resumo executivo & recomendações", "opt.exec.hint": "A IA narra os números já calculados. Não inventa dados.",
+    "opt.regen": "Gerar de novo", "opt.genInsights": "Gerar insights", "opt.analyzing": "Analisando o realizado…", "opt.genFromData": "Gere o resumo executivo a partir dos dados carregados.",
+    // Home
+    "home.badge": "Todo o ciclo da campanha, num só lugar",
+    "home.h1a": "Do ", "home.h1b": "plano", "home.h1c": " ao realizado, sem quebrar o loop.",
+    "home.sub": "A plataforma planeja campanhas integradas, localiza para a região, lê dados reais e recomenda otimizações. O app calcula cada número; a IA apenas escreve.",
+    "home.newCampaign": "Nova campanha", "home.loadSample": "Carregar campanha de exemplo", "home.continue": "Continuar",
+    "step.plan": "Planejar", "step.plan.d": "Tese, personas, mix multicanal, arquitetura de mensagem e metas de KPI.",
+    "step.localize": "Localizar", "step.localize.d": "Adaptação real para LATAM: canais locais, LGPD, tom e calendário.",
+    "step.measure": "Medir", "step.measure.d": "Faça upload do extrato Excel. O app calcula CPL, ROAS, funil e pipeline.",
+    "step.optimize": "Otimizar", "step.optimize.d": "Plano vs. realizado e recomendações acionáveis por prioridade.",
+  },
+  EN: {
+    "nav.new": "New campaign", "nav.save": "Save", "nav.pdf": "PDF",
+    "err.section": "This section hit an error.", "err.safe": "Your other campaigns are safe. Try switching phases, or reload the page.", "err.retry": "Try again",
+    "spinner.generating": "Generating…", "campaignName.ph": "Campaign name",
+    "drawer.title": "My Campaigns", "drawer.saved": "Saved Campaigns", "drawer.empty": "Nothing saved yet. Create a campaign and tap Save to keep it here.",
+    "tb.content": "Content is in", "tb.outputSet": ", output language is set to", "tb.noauto": "Translation did not run automatically. Retry it here.", "tb.translatingTo": "Translating to", "tb.translateTo": "Translate to",
+    "toast.plan": "Plan generated.", "toast.loc": "Localization generated.", "toast.insights": "Insights generated.", "toast.translated": "Content translated.", "toast.removed": "Campaign removed.", "toast.sheet": "Spreadsheet loaded.",
+    "plan.profile": "Campaign profile", "plan.profile.hint": "Set once. Generation uses this profile.",
+    "plan.company": "Company", "plan.category": "Category", "plan.offering": "Offering / value proposition",
+    "plan.competitors": "Competitors", "plan.market": "Primary market", "plan.audience": "Target audience",
+    "plan.objective": "Campaign objective", "plan.type": "Type",
+    "plan.generate": "Generate plan", "plan.err.parse": "Couldn't parse the response. Try again.", "plan.err.fail": "Failed to generate the plan.",
+    "plan.thesis": "Thesis & timing", "plan.personas": "Personas by funnel stage", "plan.pain": "Pain: ", "plan.message": "Message: ",
+    "plan.mix": "Multichannel mix mapped to the funnel", "plan.msgarch": "Message architecture",
+    "th.persona": "Persona", "th.awareness": "Awareness", "th.consideration": "Consideration", "th.decision": "Decision",
+    "plan.assets": "Asset plan", "plan.kpi": "KPI targets (full-funnel)", "plan.kpi.hint": "Targets are yours to set. The AI can suggest starting values, but review before use.",
+    "loc.layer": "Localization layer", "loc.layer.hint": "Real adaptation of the global campaign to the region, not just translation.",
+    "loc.market": "Target market", "loc.generate": "Generate localization",
+    "loc.language": "Language", "loc.tone": "Tone", "loc.channels": "Local channels", "loc.compliance": "Compliance (LGPD)", "loc.cultural": "Cultural notes", "loc.calendar": "Local calendar",
+    "meas.actuals": "Actuals", "meas.actuals.hint": "Upload the campaign's real extract. The app computes, it doesn't guess.",
+    "meas.template": "Download template", "meas.upload": "Upload spreadsheet", "meas.channelsLoaded": "channels loaded",
+    "st.spend": "Spend", "st.leads": "Leads", "st.pipeline": "Pipeline", "st.roas": "ROAS",
+    "meas.funnel": "Conversion funnel", "meas.spendByChannel": "Spend by channel", "meas.cplByChannel": "Cost per lead by channel", "meas.channelDetail": "Channel detail",
+    "th.channel": "Channel", "th.spend": "Spend", "th.cpl": "CPL",
+    "meas.noData": "No data yet", "meas.noData.sub": "Download the template, fill it with the campaign extract, and upload to see the dashboard.",
+    "opt.needData": "Load data in Measure first", "opt.needData.sub": "Optimization compares actuals against the plan's targets.",
+    "opt.kpi": "KPI targets", "opt.kpi.hint": "Set or adjust targets here without going back to Plan.",
+    "opt.noTargets": "No targets set yet", "opt.noTargets.sub": "Fill at least one KPI target above to unlock plan vs. actual.",
+    "opt.pva": "Plan vs. actual", "opt.pva.hint": "Actuals against the targets set in the plan.", "opt.pva.sub": "Attainment vs. target (100% = on target). Green favorable, coral unfavorable.", "opt.vsTarget": "vs target",
+    "opt.exec": "Executive summary & recommendations", "opt.exec.hint": "The AI narrates the already-computed numbers. It doesn't invent data.",
+    "opt.regen": "Regenerate", "opt.genInsights": "Generate insights", "opt.analyzing": "Analyzing actuals…", "opt.genFromData": "Generate the executive summary from the loaded data.",
+    "home.badge": "The full campaign lifecycle, in one place",
+    "home.h1a": "From ", "home.h1b": "plan", "home.h1c": " to actual, without breaking the loop.",
+    "home.sub": "The platform plans integrated campaigns, localizes for the region, reads real data, and recommends optimization. The app computes every number; the AI only writes.",
+    "home.newCampaign": "New campaign", "home.loadSample": "Load sample campaign", "home.continue": "Continue",
+    "step.plan": "Plan", "step.plan.d": "Thesis, personas, multichannel mix, message architecture, and KPI targets.",
+    "step.localize": "Localize", "step.localize.d": "Real LATAM adaptation: local channels, LGPD, tone, and calendar.",
+    "step.measure": "Measure", "step.measure.d": "Upload the Excel extract. The app computes CPL, ROAS, funnel, and pipeline.",
+    "step.optimize": "Optimize", "step.optimize.d": "Plan vs. actual and actionable recommendations by priority.",
+  },
+};
+function TR(lang, k) { return (UI[lang] && UI[lang][k]) || UI.EN[k] || k; }
+
 export default function App() {
   const [dark, setDark] = useState(false);
+  const [uiLang, setUiLang] = useState(() => {
+    try { return localStorage.getItem("ici-lang") || "PT"; } catch (e) { return "PT"; }
+  });
+  const tr = (k) => TR(uiLang, k);
+  useEffect(() => { try { localStorage.setItem("ici-lang", uiLang); } catch (e) {} }, [uiLang]);
   const T = useMemo(() => tokens(dark), [dark]);
   const [view, setView] = useState("home"); // home | workspace
   const [campaign, setCampaign] = useState(null);
@@ -1434,8 +1532,20 @@ export default function App() {
   };
 
   const openCampaign = (c) => { setCampaign(normalizeCampaign(c)); setPhase(PHASES[0]); setView("workspace"); setDrawer(false); };
-  const newCampaign = () => { openCampaign(emptyCampaign()); };
-  const openDemo = () => { openCampaign(buildDemo()); };
+  const newCampaign = () => { openCampaign({ ...emptyCampaign(), contentLang: uiLang }); };
+  const openDemo = () => { openCampaign(buildDemo(uiLang)); };
+
+  // Header PT|EN: always switches the interface; with a campaign open it also
+  // sets the content language and re-translates the generated content.
+  function switchLang(v) {
+    setUiLang(v);
+    if (campaign && v !== (campaign.contentLang || "PT")) {
+      setCampaign((c) => ({ ...c, contentLang: v }));
+      if (hasGeneratedContent(campaign) && campaign.generatedLang && campaign.generatedLang !== v) {
+        translateContent(v);
+      }
+    }
+  }
 
   // PDF export forces the light theme so the printed document is never dark.
   function exportPDF() {
@@ -1464,7 +1574,7 @@ export default function App() {
       setTimeout(() => {
         setCampaign((c) => ({ ...c, ...demoPatch(target), contentLang: target, generatedLang: target }));
         setTranslating(false);
-        notify("Content translated.");
+        notify(tr("toast.translated"));
       }, 900);
       return;
     }
@@ -1549,7 +1659,7 @@ export default function App() {
       setCampaign((c) => ({ ...c, ...patch, contentLang: target, generatedLang: target }));
       notify(failed.length
         ? "Translated, except: " + failed.join(", ") + ". Switch language again to retry."
-        : "Content translated.", failed.length > 0);
+        : tr("toast.translated"), failed.length > 0);
     } catch (e) {
       notify((e && e.message) || "Translation failed. Try again.", true);
     } finally {
@@ -1572,7 +1682,7 @@ export default function App() {
     await removeCampaign(id);
     setSaved(await loadCampaigns());
     if (campaign && campaign.id === id) { setView("home"); setCampaign(null); }
-    notify("Campaign removed.");
+    notify(tr("toast.removed"));
   }
 
   const link = "https://www.linkedin.com/in/carloseduardovf/";
@@ -1633,7 +1743,7 @@ export default function App() {
           <div style={{ justifySelf: "center" }}>
             {view === "workspace" ? (
               <div className="cd-phasenav">
-                <Segmented options={PHASES} value={phase} onChange={setPhase} T={T} icons={PHASE_ICONS} />
+                <Segmented options={PHASES} value={phase} onChange={setPhase} T={T} icons={PHASE_ICONS} labels={{ Plan: tr("step.plan"), Localize: tr("step.localize"), Measure: tr("step.measure"), Optimize: tr("step.optimize") }} />
               </div>
             ) : null}
           </div>
@@ -1641,23 +1751,14 @@ export default function App() {
           <div style={{ display: "flex", alignItems: "center", gap: 10, justifySelf: "end" }}>
             {view === "workspace" ? (
               <>
-                <Btn T={T} size="sm" variant="ghost" icon={Save} onClick={save}>Save</Btn>
-                <Btn T={T} size="sm" variant="outline" icon={Download} onClick={exportPDF}>PDF</Btn>
+                <Btn T={T} size="sm" variant="ghost" icon={Save} onClick={save}>{tr("nav.save")}</Btn>
+                <Btn T={T} size="sm" variant="outline" icon={Download} onClick={exportPDF}>{tr("nav.pdf")}</Btn>
               </>
             ) : null}
-            {/* Output-language PT | EN — standardized into the header (matches ABM
-                Orchestrator). Shown when a campaign is open; switching translates
-                already-generated content into the selected language. */}
-            {campaign ? (
-              <Segmented options={["PT", "EN"]} value={campaign.contentLang || "PT"}
-                onChange={(v) => {
-                  if (v === (campaign.contentLang || "PT")) return;
-                  setCampaign((c) => ({ ...c, contentLang: v }));
-                  if (hasGeneratedContent(campaign) && campaign.generatedLang && campaign.generatedLang !== v) {
-                    translateContent(v);
-                  }
-                }} T={T} />
-            ) : null}
+            {/* PT | EN — always visible in the header (like ABM / BD Cockpit).
+                Switches the whole UI; with a campaign open it also translates the
+                generated content into the selected language. */}
+            <Segmented options={["PT", "EN"]} value={uiLang} onChange={switchLang} T={T} />
             <button onClick={() => setDark((d) => !d)} style={{ background: T.chip, border: "none", borderRadius: 10, width: 36, height: 36, display: "grid", placeItems: "center", cursor: "pointer", color: T.ink }}>
               {dark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
@@ -1670,28 +1771,28 @@ export default function App() {
 
       <main style={{ maxWidth: 1760, width: "100%", margin: "0 auto", padding: "26px 20px 80px" }}>
         {view === "home" ? (
-          <Home T={T} onNew={newCampaign} onDemo={openDemo} saved={saved} onOpen={openCampaign} />
+          <Home T={T} lang={uiLang} onNew={newCampaign} onDemo={openDemo} saved={saved} onOpen={openCampaign} />
         ) : campaign ? (
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, marginBottom: 20, flexWrap: "wrap" }}>
-              <input value={campaign.name} maxLength={90} placeholder="Campaign name"
+              <input value={campaign.name} maxLength={90} placeholder={tr("campaignName.ph")}
                 onChange={(e) => setCampaign((c) => ({ ...c, name: e.target.value }))}
                 style={{ background: "transparent", border: "none", outline: "none", color: T.ink, fontSize: 26, fontWeight: 800, letterSpacing: -0.6, fontFamily: T.font, flex: 1, minWidth: 240 }} />
             </div>
             {/* phase nav for mobile (below title) */}
             <div className="cd-phasenav-mobile no-print" style={{ display: "none", marginBottom: 18, overflowX: "auto" }}>
-              <Segmented options={PHASES} value={phase} onChange={setPhase} T={T} icons={PHASE_ICONS} />
+              <Segmented options={PHASES} value={phase} onChange={setPhase} T={T} icons={PHASE_ICONS} labels={{ Plan: tr("step.plan"), Localize: tr("step.localize"), Measure: tr("step.measure"), Optimize: tr("step.optimize") }} />
             </div>
 
             <div className="no-print">
-              <TranslateBar campaign={campaign} onTranslate={translateContent} translating={translating} T={T} />
+              <TranslateBar campaign={campaign} onTranslate={translateContent} translating={translating} T={T} lang={uiLang} />
             </div>
 
-            <PhaseBoundary T={T} resetKey={phase}>
-              {phase === "Plan" && <PlanPhase campaign={campaign} setCampaign={setCampaign} T={T} notify={notify} />}
-              {phase === "Localize" && <LocalizePhase campaign={campaign} setCampaign={setCampaign} T={T} notify={notify} />}
-              {phase === "Measure" && <MeasurePhase campaign={campaign} setCampaign={setCampaign} T={T} notify={notify} />}
-              {phase === "Optimize" && <OptimizePhase campaign={campaign} setCampaign={setCampaign} T={T} notify={notify} />}
+            <PhaseBoundary T={T} lang={uiLang} resetKey={phase}>
+              {phase === "Plan" && <PlanPhase campaign={campaign} setCampaign={setCampaign} T={T} lang={uiLang} notify={notify} />}
+              {phase === "Localize" && <LocalizePhase campaign={campaign} setCampaign={setCampaign} T={T} lang={uiLang} notify={notify} />}
+              {phase === "Measure" && <MeasurePhase campaign={campaign} setCampaign={setCampaign} T={T} lang={uiLang} notify={notify} />}
+              {phase === "Optimize" && <OptimizePhase campaign={campaign} setCampaign={setCampaign} T={T} lang={uiLang} notify={notify} />}
             </PhaseBoundary>
           </div>
         ) : null}
@@ -1707,7 +1808,7 @@ export default function App() {
         </div>
       </footer>
 
-      <div className="no-print"><Drawer open={drawer} onClose={() => setDrawer(false)} campaigns={saved} onOpen={openCampaign} onDelete={del} onNew={newCampaign} T={T} currentId={campaign ? campaign.id : null} /></div>
+      <div className="no-print"><Drawer open={drawer} onClose={() => setDrawer(false)} campaigns={saved} onOpen={openCampaign} onDelete={del} onNew={newCampaign} T={T} lang={uiLang} currentId={campaign ? campaign.id : null} /></div>
 
       {toast ? (
         <div className="no-print" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 60,
@@ -1733,29 +1834,29 @@ export default function App() {
 }
 
 /* -------------------------------- Home ---------------------------------- */
-function Home({ T, onNew, onDemo, saved, onOpen }) {
+function Home({ T, lang, onNew, onDemo, saved, onOpen }) {
   const steps = [
-    { icon: Target, t: "Plan", d: "Thesis, personas, multichannel mix, message architecture, and KPI targets." },
-    { icon: Globe, t: "Localize", d: "Real LATAM adaptation: local channels, LGPD, tone, and calendar." },
-    { icon: BarChart3, t: "Measure", d: "Upload the Excel extract. The app computes CPL, ROAS, funnel, and pipeline." },
-    { icon: TrendingUp, t: "Optimize", d: "Plan vs. actual and actionable recommendations by priority." },
+    { icon: Target, t: TR(lang, "step.plan"), d: TR(lang, "step.plan.d") },
+    { icon: Globe, t: TR(lang, "step.localize"), d: TR(lang, "step.localize.d") },
+    { icon: BarChart3, t: TR(lang, "step.measure"), d: TR(lang, "step.measure.d") },
+    { icon: TrendingUp, t: TR(lang, "step.optimize"), d: TR(lang, "step.optimize.d") },
   ];
   return (
     <div>
       {/* Hero: lifecycle spine as thesis */}
       <div style={{ textAlign: "center", padding: "34px 0 10px" }}>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: T.violet + "14", color: T.violet, padding: "6px 14px", borderRadius: 999, fontSize: 12.5, fontWeight: 700, marginBottom: 20 }}>
-          <Zap size={14} /> The full campaign lifecycle, in one place
+          <Zap size={14} /> {TR(lang, "home.badge")}
         </div>
         <h1 style={{ fontSize: 46, fontWeight: 850, letterSpacing: -1.6, lineHeight: 1.04, margin: "0 auto 14px", maxWidth: 720 }}>
-          From <span style={{ background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>plan</span> to actual, without breaking the loop.
+          {TR(lang, "home.h1a")}<span style={{ background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>{TR(lang, "home.h1b")}</span>{TR(lang, "home.h1c")}
         </h1>
         <p style={{ fontSize: 17, color: T.muted, maxWidth: 560, margin: "0 auto 26px", lineHeight: 1.5 }}>
-          The platform plans integrated campaigns, localizes for the region, reads real data, and recommends optimization. The app computes every number; the AI only writes.
+          {TR(lang, "home.sub")}
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <Btn T={T} icon={Plus} onClick={onNew}>New campaign</Btn>
-          <Btn T={T} variant="outline" icon={Rocket} onClick={onDemo}>Load sample campaign</Btn>
+          <Btn T={T} icon={Plus} onClick={onNew}>{TR(lang, "home.newCampaign")}</Btn>
+          <Btn T={T} variant="outline" icon={Rocket} onClick={onDemo}>{TR(lang, "home.loadSample")}</Btn>
         </div>
       </div>
 
@@ -1777,7 +1878,7 @@ function Home({ T, onNew, onDemo, saved, onOpen }) {
 
       {saved.length ? (
         <div style={{ marginTop: 40 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: T.faint, marginBottom: 14 }}>Continue</div>
+          <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", color: T.faint, marginBottom: 14 }}>{TR(lang, "home.continue")}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 12 }}>
             {saved.slice(0, 6).map((c) => (
               <Card T={T} key={c.id} pad={16} style={{ cursor: "pointer" }}>
