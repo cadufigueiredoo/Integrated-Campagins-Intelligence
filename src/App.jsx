@@ -1600,55 +1600,55 @@ export default function App() {
         if (tr) apply(tr); else failed.push(label);
       };
 
-      await run("profile",
-        { offering: prof.offering, category: prof.category, audience: prof.audience, objective: campaign.objective },
-        (tr) => {
-          patch.profile = {
-            ...prof,
-            offering: tr.offering || prof.offering,
-            category: tr.category || prof.category,
-            audience: tr.audience || prof.audience,
-          };
-          patch.objective = tr.objective || campaign.objective;
-        });
-
-      await run("thesis",
-        { thesis: p.thesis, whyNow: p.whyNow || [] },
-        (tr) => { planPatch = { ...planPatch, thesis: tr.thesis || p.thesis, whyNow: tr.whyNow || p.whyNow }; });
-
-      await run("personas",
-        { personas: p.personas || [] },
-        (tr) => { planPatch = { ...planPatch, personas: tr.personas || p.personas }; });
-
-      await run("channel mix",
-        { channelMix: p.channelMix || [] },
-        (tr) => { planPatch = { ...planPatch, channelMix: tr.channelMix || p.channelMix }; });
-
-      await run("message architecture",
-        { messageArchitecture: p.messageArchitecture || [] },
-        (tr) => { planPatch = { ...planPatch, messageArchitecture: tr.messageArchitecture || p.messageArchitecture }; });
-
-      await run("asset plan",
-        { assetPlan: p.assetPlan || [] },
-        (tr) => { planPatch = { ...planPatch, assetPlan: tr.assetPlan || p.assetPlan }; });
+      const ins = campaign.insights;
+      // Translate every section in PARALLEL — the requests are independent, so
+      // this cuts wall-clock time from the sum of all of them to the slowest one.
+      // (Each apply callback runs to completion on the single JS thread, so the
+      // shared patch/planPatch accumulate safely regardless of resolution order.)
+      const tasks = [
+        run("profile",
+          { offering: prof.offering, category: prof.category, audience: prof.audience, objective: campaign.objective },
+          (tr) => {
+            patch.profile = {
+              ...prof,
+              offering: tr.offering || prof.offering,
+              category: tr.category || prof.category,
+              audience: tr.audience || prof.audience,
+            };
+            patch.objective = tr.objective || campaign.objective;
+          }),
+        run("thesis",
+          { thesis: p.thesis, whyNow: p.whyNow || [] },
+          (tr) => { planPatch = { ...planPatch, thesis: tr.thesis || p.thesis, whyNow: tr.whyNow || p.whyNow }; }),
+        run("personas",
+          { personas: p.personas || [] },
+          (tr) => { planPatch = { ...planPatch, personas: tr.personas || p.personas }; }),
+        run("channel mix",
+          { channelMix: p.channelMix || [] },
+          (tr) => { planPatch = { ...planPatch, channelMix: tr.channelMix || p.channelMix }; }),
+        run("message architecture",
+          { messageArchitecture: p.messageArchitecture || [] },
+          (tr) => { planPatch = { ...planPatch, messageArchitecture: tr.messageArchitecture || p.messageArchitecture }; }),
+        run("asset plan",
+          { assetPlan: p.assetPlan || [] },
+          (tr) => { planPatch = { ...planPatch, assetPlan: tr.assetPlan || p.assetPlan }; }),
+        run("localization",
+          { language: L.language, tone: L.tone, localChannels: L.localChannels || [], compliance: L.compliance || [],
+            culturalNotes: L.culturalNotes || [], calendarNotes: L.calendarNotes || [] },
+          (tr) => { patch.localization = { ...L, ...tr }; }),
+      ];
+      if (ins) {
+        tasks.push(run("executive summary",
+          { summary: ins.summary, gaps: ins.gaps || [] },
+          (tr) => { patch.insights = { ...(patch.insights || ins), summary: tr.summary || ins.summary, gaps: tr.gaps || ins.gaps }; }));
+        tasks.push(run("recommendations",
+          { recommendations: ins.recommendations || [] },
+          (tr) => { patch.insights = { ...(patch.insights || ins), recommendations: tr.recommendations || ins.recommendations }; }));
+      }
+      await Promise.all(tasks);
 
       if (Object.keys(planPatch).length) {
         patch.plan = { ...p, ...planPatch, kpiTargets: p.kpiTargets }; // targets are numbers: never sent
-      }
-
-      await run("localization",
-        { language: L.language, tone: L.tone, localChannels: L.localChannels || [], compliance: L.compliance || [],
-          culturalNotes: L.culturalNotes || [], calendarNotes: L.calendarNotes || [] },
-        (tr) => { patch.localization = { ...L, ...tr }; });
-
-      const ins = campaign.insights;
-      if (ins) {
-        await run("executive summary",
-          { summary: ins.summary, gaps: ins.gaps || [] },
-          (tr) => { patch.insights = { ...ins, summary: tr.summary || ins.summary, gaps: tr.gaps || ins.gaps }; });
-        await run("recommendations",
-          { recommendations: ins.recommendations || [] },
-          (tr) => { patch.insights = { ...(patch.insights || ins), recommendations: tr.recommendations || ins.recommendations }; });
       }
 
       if (!Object.keys(patch).length) {
