@@ -8,7 +8,7 @@ import {
   Sparkles, Globe, BarChart3, Target, Plus, Save, Trash2, Download, Sun, Moon,
   X, ChevronRight, Upload, FileSpreadsheet, TrendingUp, TrendingDown, Layers,
   Users, Megaphone, Calendar, AlertTriangle, CheckCircle2, Menu, ExternalLink,
-  Zap, Rocket, ArrowRight, FileText, Languages,
+  Zap, Rocket, ArrowRight, FileText, Languages, Lock,
 } from "lucide-react";
 
 /* ============================================================================
@@ -1507,6 +1507,130 @@ const UI = {
 };
 function TR(lang, k) { return (UI[lang] && UI[lang][k]) || UI.EN[k] || k; }
 
+/* ---------- Registration gate (lead capture) ------------------------------ */
+// A visitor must register before the tool unlocks. Bilingual, English by
+// default (per brand owner), remembered in localStorage, and forwarded to
+// /api/lead → Google Sheet. "Carlos Eduardo" links to LinkedIn.
+const LEAD_KEY = "leadgate.registered";
+const LEAD_LINKEDIN = "https://www.linkedin.com/in/carloseduardovf/";
+const LEAD_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function readLead() {
+  try { const raw = localStorage.getItem(LEAD_KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+}
+const LEAD_COPY = {
+  EN: {
+    kicker: "Restricted access", ipPre: "This tool is the intellectual property of ", ipName: "Carlos Eduardo",
+    sub: "Complete your registration below to access it.",
+    name: "Full name", email: "Work email", company: "Company", phone: "Phone", optional: "optional",
+    submit: "Access tool", submitting: "Submitting…", required: "Required", bademail: "Enter a valid email.",
+    error: "Couldn't submit. Please check your connection and try again.",
+    privacy: "Used only to know who's accessing the tool.",
+    light: "Light", dark: "Dark",
+  },
+  PT: {
+    kicker: "Acesso restrito", ipPre: "Esta ferramenta é propriedade intelectual de ", ipName: "Carlos Eduardo",
+    sub: "Conclua seu registro abaixo para acessá-la.",
+    name: "Nome completo", email: "E-mail corporativo", company: "Empresa", phone: "Telefone", optional: "opcional",
+    submit: "Acessar ferramenta", submitting: "Enviando…", required: "Obrigatório", bademail: "Informe um e-mail válido.",
+    error: "Não foi possível enviar. Verifique a conexão e tente de novo.",
+    privacy: "Usado apenas para saber quem acessa a ferramenta.",
+    light: "Claro", dark: "Escuro",
+  },
+};
+function LeadGate({ T, source, onDone, dark, setDark }) {
+  const [lang, setLang] = useState("EN");
+  const [f, setF] = useState({ name: "", email: "", company: "", phone: "" });
+  const [touched, setTouched] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const c = LEAD_COPY[lang];
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+  const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
+  const nameErr = touched && !f.name.trim() ? c.required : null;
+  const companyErr = touched && !f.company.trim() ? c.required : null;
+  const emailErr = touched ? (!f.email.trim() ? c.required : !LEAD_EMAIL_RE.test(f.email.trim()) ? c.bademail : null) : null;
+  const valid = f.name.trim() && f.company.trim() && LEAD_EMAIL_RE.test(f.email.trim());
+  async function submit(e) {
+    e.preventDefault();
+    setTouched(true); setErr(null);
+    if (!valid) return;
+    const lead = { name: f.name.trim(), email: f.email.trim(), company: f.company.trim(), phone: f.phone.trim() || undefined, ts: Date.now() };
+    setBusy(true);
+    try {
+      const res = await fetch("/api/lead", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...lead, source, lang }) });
+      if (!res.ok) throw new Error("submit failed");
+      try { localStorage.setItem(LEAD_KEY, JSON.stringify(lead)); } catch (e2) {}
+      onDone(lead);
+    } catch (e2) { setErr(c.error); setBusy(false); }
+  }
+  const label = { display: "block", marginBottom: 5, fontSize: 12, fontWeight: 600, color: T.muted };
+  const input = { width: "100%", background: T.cardEl, border: `1px solid ${T.hair}`, borderRadius: 12, padding: "11px 13px", fontSize: 14, color: T.ink, outline: "none", font: "inherit" };
+  const errStyle = { marginTop: 4, fontSize: 11, color: T.bad };
+  const segBtn = (active) => ({ padding: "6px 11px", fontSize: 12, textTransform: "uppercase", border: "none", cursor: "pointer", background: active ? T.violet : "transparent", color: active ? "#fff" : T.muted, fontWeight: 600 });
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "grid", placeItems: "center", overflowY: "auto", padding: 16, background: T.dark ? "rgba(0,0,0,0.62)" : "rgba(20,20,30,0.34)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}>
+      <div style={{ width: "100%", maxWidth: 440, background: T.card, color: T.ink, borderRadius: 24, padding: 26, boxShadow: T.shadow, fontFamily: T.font }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+          <span style={{ display: "grid", placeItems: "center", width: 44, height: 44, borderRadius: 15, background: T.grad, boxShadow: "0 8px 22px rgba(110,58,255,0.35)" }}>
+            <Lock size={18} color="#fff" />
+          </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "inline-flex", overflow: "hidden", borderRadius: 11, background: T.chip }}>
+              {["EN", "PT"].map((l) => (<button key={l} type="button" onClick={() => setLang(l)} style={segBtn(lang === l)}>{l}</button>))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDark((d) => !d)}
+              aria-label={dark ? c.light : c.dark}
+              title={dark ? c.light : c.dark}
+              style={{ background: T.chip, border: "none", borderRadius: 11, width: 34, height: 34, display: "grid", placeItems: "center", cursor: "pointer", color: T.ink }}
+            >
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+        </div>
+        <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: T.violet }}>{c.kicker}</p>
+        <h2 style={{ margin: "6px 0 0", fontSize: 19, fontWeight: 700, lineHeight: 1.35, letterSpacing: "-0.01em", color: T.ink }}>
+          {c.ipPre}
+          <a href={LEAD_LINKEDIN} target="_blank" rel="noopener noreferrer" style={{ color: T.violet, textDecoration: "underline", textUnderlineOffset: 2 }}>{c.ipName}</a>.
+        </h2>
+        <p style={{ margin: "6px 0 0", fontSize: 13.5, color: T.muted }}>{c.sub}</p>
+        <form onSubmit={submit} noValidate style={{ marginTop: 18, display: "grid", gap: 13 }}>
+          <div>
+            <label style={label} htmlFor="lg-name">{c.name}</label>
+            <input id="lg-name" style={input} value={f.name} onChange={set("name")} autoComplete="name" />
+            {nameErr && <p style={errStyle}>{nameErr}</p>}
+          </div>
+          <div>
+            <label style={label} htmlFor="lg-email">{c.email}</label>
+            <input id="lg-email" type="email" style={input} value={f.email} onChange={set("email")} autoComplete="email" />
+            {emailErr && <p style={errStyle}>{emailErr}</p>}
+          </div>
+          <div>
+            <label style={label} htmlFor="lg-company">{c.company}</label>
+            <input id="lg-company" style={input} value={f.company} onChange={set("company")} autoComplete="organization" />
+            {companyErr && <p style={errStyle}>{companyErr}</p>}
+          </div>
+          <div>
+            <label style={label} htmlFor="lg-phone">{c.phone} <span style={{ color: T.faint }}>({c.optional})</span></label>
+            <input id="lg-phone" type="tel" style={input} value={f.phone} onChange={set("phone")} autoComplete="tel" />
+          </div>
+          {err && <p style={{ margin: 0, fontSize: 12, color: T.bad }}>{err}</p>}
+          <button type="submit" disabled={busy} style={{ marginTop: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", border: "none", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontWeight: 700, color: "#fff", cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1, background: T.grad, boxShadow: "0 10px 26px rgba(110,58,255,0.32)" }}>
+            {busy ? <span style={{ width: 15, height: 15, border: "2px solid rgba(255,255,255,0.5)", borderTopColor: "#fff", borderRadius: "50%", display: "inline-block", animation: "cdspin 0.7s linear infinite" }} /> : null}
+            {busy ? c.submitting : c.submit}
+          </button>
+          <p style={{ margin: 0, textAlign: "center", fontSize: 11, color: T.faint }}>{c.privacy}</p>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [dark, setDark] = useState(false);
   const [uiLang, setUiLang] = useState(() => {
@@ -1522,6 +1646,7 @@ export default function App() {
   const [drawer, setDrawer] = useState(false);
   const [toast, setToast] = useState(null);
   const [translating, setTranslating] = useState(false);
+  const [lead, setLead] = useState(() => readLead());
 
   useEffect(() => { loadCampaigns().then(setSaved); }, []);
   const toastTimer = useRef(null);
@@ -1689,6 +1814,7 @@ export default function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: T.bgAtmo, fontFamily: T.font, color: T.ink, WebkitFontSmoothing: "antialiased" }}>
+      {!lead && <LeadGate T={T} source="Integrated Campaign Intelligence" onDone={setLead} dark={dark} setDark={setDark} />}
       <style>{`
         @keyframes cdspin { to { transform: rotate(360deg); } }
         * { box-sizing: border-box; }
